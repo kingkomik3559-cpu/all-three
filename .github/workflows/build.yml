@@ -63,7 +63,8 @@ jobs:
             -Ddoc=false \
             -Dhtmldoc=false \
             -Dpdfdoc=false \
-            -Didn=false
+            -Didn=false \
+            -Dnls=false
 
           ninja -C build
           ninja -C build install
