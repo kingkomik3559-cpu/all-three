@@ -57,7 +57,12 @@ jobs:
             --buildtype=release \
             -Dopenssl=true \
             -Dtre=false \
-            -Dlibcss=false
+            -Dlibcss=false \
+            -Dgpm=false \
+            -Dapidoc=false \
+            -Ddoc=false \
+            -Dhtmldoc=false \
+            -Dpdfdoc=false
 
           ninja -C build
           ninja -C build install
