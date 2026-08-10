@@ -9,7 +9,7 @@ jobs:
 
       - name: Install System Build Dependencies
         run: |
-          brew install openssl ncurses gettext autoconf automake pkg-config bdw-gc
+          brew install openssl ncurses gettext autoconf automake libtool pkg-config bdw-gc meson ninja
 
       - name: Clone w3m source (active SourceHut fork)
         run: |
@@ -47,20 +47,18 @@ jobs:
       - name: Configure and Compile elinks
         run: |
           cd elinks-source
-          mkdir build && cd build
 
           export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix ncurses)/lib"
           export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix ncurses)/include"
           export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix ncurses)/lib/pkgconfig"
 
-          cmake .. \
-            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/elinks-bin" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCONFIG_SSL=ON \
-            -DCONFIG_OPENSSL=ON
+          meson setup build \
+            --prefix="$GITHUB_WORKSPACE/elinks-bin" \
+            --buildtype=release \
+            -Dopenssl=true
 
-          cmake --build . --parallel
-          cmake --install .
+          ninja -C build
+          ninja -C build install
 
       - name: Verify no Homebrew dependencies remain linked
         run: |
