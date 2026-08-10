@@ -55,7 +55,8 @@ jobs:
           meson setup build \
             --prefix="$GITHUB_WORKSPACE/elinks-bin" \
             --buildtype=release \
-            -Dopenssl=true
+            -Dopenssl=true \
+            -Dtre=false
 
           ninja -C build
           ninja -C build install
