@@ -35,10 +35,10 @@ jobs:
 
       - name: Bundle dylibs alongside the binary
         run: |
-          mkdir -p w3m-bin/libs
+          mkdir -p w3m-bin/bin/libs
           dylibbundler -od -b \
             -x w3m-bin/bin/w3m \
-            -d w3m-bin/libs \
+            -d w3m-bin/bin/libs \
             -p @executable_path/libs
 
       - name: Show linked libraries
@@ -92,10 +92,10 @@ jobs:
 
       - name: Bundle dylibs alongside the binary
         run: |
-          mkdir -p elinks-bin/libs
+          mkdir -p elinks-bin/bin/libs
           dylibbundler -od -b \
             -x elinks-bin/bin/elinks \
-            -d elinks-bin/libs \
+            -d elinks-bin/bin/libs \
             -p @executable_path/libs
 
       - name: Show linked libraries
