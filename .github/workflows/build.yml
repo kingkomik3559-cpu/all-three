@@ -30,7 +30,7 @@ jobs:
       - name: Configure and Compile w3m
         run: |
           cd w3m-source
-          ./autogen.sh
+          autoreconf -fiv
 
           export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix ncurses)/lib -L$(brew --prefix gettext)/lib -L$(brew --prefix bdw-gc)/lib"
           export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix ncurses)/include -I$(brew --prefix gettext)/include -I$(brew --prefix bdw-gc)/include"
