@@ -87,3 +87,60 @@ jobs:
         with:
           name: elinks-macos-${{ github.run_id }}
           path: elinks-bin/
+
+  build-elinks-dynamic:
+    runs-on: macos-15   # arm64 (Apple Silicon). Use macos-13 for Intel Macs instead.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install System Build Dependencies
+        run: |
+          brew install openssl ncurses gettext pkg-config meson ninja dylibbundler
+
+      - name: Clone elinks source
+        run: |
+          git clone --depth 1 https://github.com/rkd77/elinks.git elinks-source
+
+      - name: Configure and Compile elinks (dynamic linking)
+        run: |
+          cd elinks-source
+
+          export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix ncurses)/lib"
+          export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix ncurses)/include"
+          export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix ncurses)/lib/pkgconfig"
+
+          meson setup build \
+            --prefix="$GITHUB_WORKSPACE/elinks-bin-dynamic" \
+            --buildtype=release \
+            -Dopenssl=true \
+            -Dtre=false \
+            -Dlibcss=false \
+            -Dgpm=false \
+            -Dapidoc=false \
+            -Ddoc=false \
+            -Dhtmldoc=false \
+            -Dpdfdoc=false \
+            -Didn=false \
+            -Dnls=false
+
+          ninja -C build
+          ninja -C build install
+
+      - name: Bundle dylibs alongside the binary
+        run: |
+          mkdir -p elinks-bin-dynamic/libs
+          dylibbundler -od -b \
+            -x elinks-bin-dynamic/bin/elinks \
+            -d elinks-bin-dynamic/libs \
+            -p @executable_path/libs
+
+      - name: Show linked libraries (for comparison against the static build)
+        run: |
+          otool -L elinks-bin-dynamic/bin/elinks
+
+      - name: Upload dynamically-linked elinks artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elinks-macos-dynamic-${{ github.run_id }}
+          path: elinks-bin-dynamic/
