@@ -1,0 +1,82 @@
+name: Compile w3m and elinks for macOS
+on: [push, workflow_dispatch]
+jobs:
+  build-macos:
+    runs-on: macos-15   # arm64 (Apple Silicon). Use macos-13 for Intel Macs instead.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install System Build Dependencies
+        run: |
+          brew install openssl ncurses gettext autoconf automake pkg-config bdw-gc
+
+      - name: Clone w3m source (active SourceHut fork)
+        run: |
+          git clone --depth 1 https://git.sr.ht/~rkta/w3m w3m-source
+
+      - name: Clone elinks source
+        run: |
+          git clone --depth 1 https://github.com/rkd77/elinks.git elinks-source
+
+      - name: Force static linking of Homebrew libraries
+        run: |
+          mkdir -p /tmp/dylib-backup
+          for pkg in openssl ncurses gettext bdw-gc; do
+            prefix="$(brew --prefix "$pkg")"
+            find "$prefix/lib" -name "*.dylib" -exec mv {} /tmp/dylib-backup/ \;
+          done
+
+      - name: Configure and Compile w3m
+        run: |
+          cd w3m-source
+          ./autogen.sh
+
+          export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix ncurses)/lib -L$(brew --prefix gettext)/lib -L$(brew --prefix bdw-gc)/lib"
+          export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix ncurses)/include -I$(brew --prefix gettext)/include -I$(brew --prefix bdw-gc)/include"
+          export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix ncurses)/lib/pkgconfig"
+
+          ./configure \
+            --prefix="$GITHUB_WORKSPACE/w3m-bin" \
+            --with-ssl="$(brew --prefix openssl)" \
+            --with-gc="$(brew --prefix bdw-gc)"
+
+          make
+          make install
+
+      - name: Configure and Compile elinks
+        run: |
+          cd elinks-source
+          mkdir build && cd build
+
+          export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix ncurses)/lib"
+          export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix ncurses)/include"
+          export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix ncurses)/lib/pkgconfig"
+
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/elinks-bin" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCONFIG_SSL=ON \
+            -DCONFIG_OPENSSL=ON
+
+          cmake --build . --parallel
+          cmake --install .
+
+      - name: Verify no Homebrew dependencies remain linked
+        run: |
+          echo "--- w3m ---"
+          otool -L w3m-bin/bin/w3m | grep -i homebrew || echo "Clean — no Homebrew paths linked."
+          echo "--- elinks ---"
+          otool -L elinks-bin/bin/elinks | grep -i homebrew || echo "Clean — no Homebrew paths linked."
+
+      - name: Upload w3m artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: w3m-macos-${{ github.run_id }}
+          path: w3m-bin/
+
+      - name: Upload elinks artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elinks-macos-${{ github.run_id }}
+          path: elinks-bin/
