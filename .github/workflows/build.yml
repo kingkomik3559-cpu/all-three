@@ -56,7 +56,8 @@ jobs:
             --prefix="$GITHUB_WORKSPACE/elinks-bin" \
             --buildtype=release \
             -Dopenssl=true \
-            -Dtre=false
+            -Dtre=false \
+            -Dlibcss=false
 
           ninja -C build
           ninja -C build install
